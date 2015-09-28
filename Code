@@ -1,0 +1,125 @@
+Imports System
+Imports System.Text
+Imports System.Net
+Imports System.Object
+Imports System.IO
+Imports System.Xml
+Imports System.Web
+Imports System.Security.Cryptography
+
+Public Class Form1 'Declare API URL
+    'Set username and apikey names
+    Dim userName As String 
+    Dim apiKey As String 
+    Dim destinationUrl As String
+    ' Create Epoch time Variable
+    Dim timeStamp As Integer = (DateTime.UtcNow - New DateTime(1970, 1, 1)).TotalSeconds
+
+    Private Sub btnLogin_Click(sender As Object, e As EventArgs) Handles btnLogin.Click
+        'Get Username from user
+        Dim userName = tbUserName.Text
+        'Get Secret Key from user
+        Dim apiKey = tbApiKey.Text
+        'Get Method from user
+        Dim method = "maintenance.getServices"
+        ' API URL
+        Dim baseUrl = "https://api.webmetrics.com/v2/?method="
+        ' Convert signature to SHA1 Hash 
+        'Dim shSig = SHA1(userName & apiKey & timeStamp)
+        'MsgBox(shSig)
+        ' Convert to base64 String
+        'Dim cBaseSig = Convert.ToBase64String(New System.Security.Cryptography.SHA1CryptoServiceProvider().ComputeHash(Encoding.ASCII.GetBytes(SHA1(userName & apiKey & timeStamp))))
+        Dim cBaseSig = Convert.ToBase64String(New System.Text.ASCIIEncoding().GetBytes(userName & apiKey & timeStamp))
+        'MsgBox(cBaseSig)
+        ' URL encode signature
+        Dim signature As String = System.Web.HttpUtility.UrlEncode(cBaseSig)
+        'MsgBox(signature)
+        ' URL result
+        destinationUrl = (baseUrl & method & "&username=" & userName & "&sig=" & signature)
+        ' Full URL output
+        'MsgBox(destinationUrl)
+        ' Request connection to Database
+        Dim request As HttpWebRequest = _
+        WebRequest.Create(destinationUrl)
+        ' Response from Database
+        Dim response As HttpWebResponse = request.GetResponse()
+        'request.ContentType = "text/xml"
+        ' Check if the response is OK (status code 200) and read data
+        If response.StatusCode = HttpStatusCode.OK Then
+            ' Respond with successful login message
+            MsgBox("Hello!  You have logged in Successfully")
+            ' Parse the contents from the response to a stream object
+            Dim stream As Stream = response.GetResponseStream()
+            ' Create a reader for the stream object
+            Dim reader As New StreamReader(stream)
+            ' Read from the stream object using the reader, put the contents in a string
+            Dim contents As String = reader.ReadToEnd()
+            ' Create a new, empty XML document
+            Dim document As New Xml.XmlDocument()
+            ' Loads contents to XML document 
+            document.LoadXml(contents)
+            'the XmlNode object provides methods and properties to manipulate a node. Use the XmlNode object that the DocumentElement property of the
+            ' XmlDocument returns to manipulate an XML node
+            Dim node As XmlNode
+            node = document.DocumentElement
+            ' Save File
+            document.Save(userName & ".xml")
+            ' Load the contents into the XML document
+            'document.LoadXml(contents)
+            'DataGridView1.Show(contents)
+            'Dim sw As IO.StreamWriter = IO.File.AppendText(userName & ".csv")
+            'Dim query = From line In contents
+            'Data = contents.Split(","c)
+
+            ' Now you have a XmlDocument object that contains the XML from the remote site, you can
+            ' use the objects and methods in the System.Xml namespace to read the document
+
+        Else
+            ' If the call to the remote site fails, you'll have to handle this. There can be many reasons, ie. the 
+            ' remote site does not respond (code 404) or your username and password were incorrect (code 401)
+            '
+            ' See the codes in the System.Net.HttpStatusCode enumerator 
+
+            'Throw New Exception("Could not retrieve document from the URL, response code: " & response.StatusCode)
+            MsgBox("Sorry, could not connect to the server." & response.StatusCode, "Please check your username and Secret Key")
+        End If
+        ' Verify username and API key is entered
+        If userName = "" Then
+            MsgBox("Please Enter Your UserId")
+        ElseIf apiKey = "" Then
+            MsgBox("Please Enter Your API Secret key")
+        Else
+            ' Shows results
+            'DataGridView1.(response)
+        End If
+        'request.Credentials = CredentialCache.DefaultCredentials
+        'request.Method = "POST"
+        'request.ContentLength = byteArray.Length
+        'request.ContentType = "application/x-www-form-urlencoded"
+
+        'Clears text boxs and sets cursor to Username box
+        tbApiKey.Clear()
+        tbUserName.Clear()
+        tbUserName.Focus()
+    End Sub
+
+    ' Create SHA1 function
+    Public Function SHA1(ByVal number As String)
+
+        Dim ASCIIENC As New ASCIIEncoding
+        Dim strreturn As Stringa
+        strreturn = vbNullString
+
+        Dim bytesourcetxt() As Byte = ASCIIENC.GetBytes(number)
+        Dim SHA1Hash As New SHA1CryptoServiceProvider
+        Dim bytehash() As Byte = SHA1Hash.ComputeHash(bytesourcetxt)
+
+        For Each b As Byte In bytehash
+            strreturn &= b.ToString("x2")
+        Next
+
+        Return strreturn
+
+    End Function
+
+End Class
